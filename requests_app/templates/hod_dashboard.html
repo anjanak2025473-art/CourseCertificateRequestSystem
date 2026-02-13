@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HOD Dashboard</title>
+</head>
+<body>
+    <h1>HOD Dashboard</h1>
+    <p>Welcome, {{ request.user.username }}</p>
+    <p>Review and approve certificate requests.</p>
+
+    <hr>
+
+    <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-wle%i%b%p0#f+^wav#0mph4is#c$0uno)-3_svk8h=zs*q^wa0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['projectccrs2025.pythonanywhere.com']
 
 
 # Application definition
@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'requests_app',   
+    'requests_app',
 ]
 
 

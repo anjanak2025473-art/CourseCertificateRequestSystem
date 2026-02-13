@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+</head>
+<body>
+    <h1>Student Dashboard</h1>
+    <p>Welcome, {{ request.user.username }}</p>
+    <p>Submit and track your certificate requests.</p>
+
+    <hr>
+
+    <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>
