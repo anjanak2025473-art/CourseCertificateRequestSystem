@@ -1,0 +1,20 @@
+<h2>Principal Dashboard</h2>
+
+<table border="1">
+    <tr>
+        <th>Student</th>
+        <th>Type</th>
+        <th>Action</th>
+    </tr>
+
+    {% for req in requests %}
+    <tr>
+        <td>{{ req.student.username }}</td>
+        <td>{{ req.certificate_type }}</td>
+        <td>
+            <a href="{% url 'principal_approve' req.id %}">Approve</a>
+            <a href="{% url 'principal_reject' req.id %}">Reject</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>

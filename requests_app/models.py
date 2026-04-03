@@ -6,11 +6,11 @@ from django.conf import settings
 class User(AbstractUser):
 
     ROLE_CHOICES = (
-        ('student', 'Student'),
-        ('hod', 'HOD'),
-        ('staff', 'Office Staff'),
-    )
-
+    ('student', 'Student'),
+    ('hod', 'HOD'),
+    ('principal', 'Principal'),   # ✅ ADD THIS
+    ('staff', 'Office Staff'),
+)
     DEPARTMENT_CHOICES = (
         ('CS', 'Computer Science'),
         ('ECO', 'Economics'),
@@ -41,11 +41,12 @@ class User(AbstractUser):
 class CertificateRequest(models.Model):
 
     STATUS_CHOICES = (
-        ('Pending', 'Pending'),               # Waiting for HOD
-        ('HOD Approved', 'HOD Approved'),     # Sent to Staff
-        ('Rejected', 'Rejected'),
-        ('Completed', 'Completed'),           # Staff finished
-    )
+    ('Pending', 'Pending'),                 # Student → HOD
+    ('HOD Approved', 'HOD Approved'),       # HOD → Principal
+    ('Principal Approved', 'Principal Approved'),  # ✅ NEW
+    ('Rejected', 'Rejected'),
+    ('Completed', 'Completed'),             # Staff
+)
 
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -55,10 +55,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'certificate_system.urls'
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # ✅ ADD THIS
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -140,9 +144,24 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
+# EMAIL SETTINGS - PythonAnywhere compatible
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'anjanak2025473@gmail.com'
-EMAIL_HOST_PASSWORD = 'lmznkihkfoqbiyph'
+EMAIL_HOST_PASSWORD = 'ispzgnxtsxzmjbfs'
+DEFAULT_FROM_EMAIL = 'anjanak2025473@gmail.com'
+EMAIL_TIMEOUT = 10
+
+# Required for password reset links to work correctly
+EMAIL_USE_SSL = False
+
+# Needed by Django's password reset to build the reset URL
+SITE_ID = 1
+
+
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/login/'
+
+

@@ -1,24 +1,34 @@
 from django.contrib import admin
-from django.urls import path
-from django.shortcuts import redirect
-from requests_app import views
+from django.urls import path, include
+from django.contrib.auth import views as auth_views
+from requests_app.views import SafePasswordResetView
 
 urlpatterns = [
-    path('', lambda request: redirect('login')),
-
     path('admin/', admin.site.urls),
 
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
-    path('register/', views.register_student, name='register_student'),
+    # Root → redirect to login
+    path('', include('requests_app.urls')),
 
-    path('student/', views.student_dashboard, name='student_dashboard'),
-    path('hod/', views.hod_dashboard, name='hod_dashboard'),
-    path('staff/', views.staff_dashboard, name='staff_dashboard'),
+    # Password Reset URLs
+    path('password-reset/',
+         SafePasswordResetView.as_view(),
+         name='password_reset'),
 
-    path('request/', views.request_certificate, name='request_certificate'),
+    path('password-reset/done/',
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='password_reset_done.html'
+         ),
+         name='password_reset_done'),
 
-    path('approve/<int:request_id>/', views.approve_request, name='approve_request'),
-    path('reject/<int:request_id>/', views.reject_request, name='reject_request'),
-    path('mark-ready/<int:request_id>/', views.mark_ready, name='mark_ready'),
+    path('reset/<uidb64>/<token>/',
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='password_reset_confirm.html'
+         ),
+         name='password_reset_confirm'),
+
+    path('reset/done/',
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='password_reset_complete.html'
+         ),
+         name='password_reset_complete'),
 ]
