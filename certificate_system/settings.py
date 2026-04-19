@@ -144,13 +144,12 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# EMAIL SETTINGS - PythonAnywhere compatible
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'anjanak2025473@gmail.com'
-EMAIL_HOST_PASSWORD = 'ispzgnxtsxzmjbfs'
+EMAIL_HOST_USER = 'apikey'
+EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = 'anjanak2025473@gmail.com'
 EMAIL_TIMEOUT = 10
 
