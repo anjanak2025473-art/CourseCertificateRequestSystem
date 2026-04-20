@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -62,9 +63,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'certificate_system.urls'
 
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 TEMPLATES = [
     {
@@ -167,4 +167,4 @@ SITE_ID = 1
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/login/'
 
-
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
