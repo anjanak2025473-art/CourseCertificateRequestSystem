@@ -343,7 +343,39 @@ def generate_certificate(certificate):
 
     return buffer
 
+@login_required
+def mark_ready(request, request_id):
+    if request.user.role != 'staff':
+        return redirect('login')
 
+    certificate = get_object_or_404(
+        CertificateRequest,
+        id=request_id,
+        student__department=request.user.department
+    )
+
+    if certificate.status == "Completed":
+        return redirect('staff_dashboard')
+
+    certificate.status = "Completed"
+    certificate.save()
+
+    pdf_file = generate_certificate(certificate)
+
+    if certificate.student.email:
+        try:
+            email = EmailMessage(
+                subject="Your Certificate is Ready",
+                body="Dear Student,\n\nPlease find your certificate attached.\n\nRegards,\nBharata Mata College Office",
+                from_email=settings.EMAIL_HOST_USER,
+                to=[certificate.student.email],
+            )
+            email.attach("Certificate.pdf", pdf_file.read(), "application/pdf")
+            email.send(fail_silently=False)
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+
+    return redirect('staff_dashboard')
 
 @login_required
 def resend_certificate_email(request, request_id):
