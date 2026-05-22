@@ -3,42 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <title>Principal Dashboard</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
         body {
             background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+        }
+
+        .card {
+            border: none;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+            transition: 0.3s;
+        }
+
+        .dashboard-title {
+            font-weight: 700;
+        }
+
+        .btn-action {
+            min-width: 90px;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .empty-state {
+            padding: 30px;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
 
-<div class="container mt-5">
+<div class="container py-5">
 
-    <!-- Header Card -->
-    <div class="card shadow-lg p-4 rounded-4">
-        <div class="d-flex justify-content-between align-items-center">
+    <!-- Header -->
+    <div class="card shadow-lg rounded-4 p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+
             <div>
-                <h2 class="text-primary">Principal Dashboard</h2>
-                <p class="mb-0">Welcome, <strong>{{ request.user.username }}</strong></p>
-                <small class="text-muted">Review and approve HOD-approved certificate requests</small>
+                <h2 class="text-primary dashboard-title">
+                    Principal Dashboard
+                </h2>
+
+                <p class="mb-1">
+                    Welcome,
+                    <strong>{{ request.user.username }}</strong>
+                </p>
+
+                <small class="text-muted">
+                    Review and approve HOD-approved certificate requests
+                </small>
             </div>
 
             <!-- Logout -->
             <form action="{% url 'logout' %}" method="post">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger">Logout</button>
+                <button type="submit" class="btn btn-danger mt-3 mt-md-0">
+                    Logout
+                </button>
             </form>
+
         </div>
     </div>
 
     <!-- Requests Table -->
-    <div class="card shadow-lg p-4 rounded-4 mt-4">
-        <h4 class="mb-3 text-success">HOD Approved — Awaiting Principal Approval</h4>
+    <div class="card shadow-lg rounded-4 p-4 mt-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h4 class="text-success mb-2 mb-md-0">
+                Pending Principal Approvals
+            </h4>
+
+            <span class="badge bg-primary fs-6">
+                Total Requests: {{ requests|length }}
+            </span>
+        </div>
 
         <div class="table-responsive">
+
             <table class="table table-bordered table-hover align-middle">
 
-                <thead class="table-primary">
+                <thead class="table-primary text-center">
                     <tr>
                         <th>Student</th>
                         <th>Department</th>
@@ -47,57 +99,87 @@
                         <th>Submitted On</th>
                         <th>HOD Remarks</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th width="180">Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
 
                 {% for req in requests %}
                 <tr>
+
                     <td>{{ req.student.username }}</td>
-                    <td>{{ req.student.get_department_display }}</td>
+
+                    <td>
+                        {{ req.student.get_department_display }}
+                    </td>
+
                     <td>{{ req.certificate_type }}</td>
 
-                    <td style="max-width:200px;">
-                        <div class="text-truncate" title="{{ req.purpose }}">
+                    <td style="max-width: 220px;">
+                        <div class="text-truncate"
+                             title="{{ req.purpose }}">
                             {{ req.purpose }}
                         </div>
                     </td>
 
-                    <td>{{ req.created_at|date:"d M Y - h:i A" }}</td>
+                    <td>
+                        {{ req.created_at|date:"d M Y - h:i A" }}
+                    </td>
 
-                    <td style="max-width:150px;">
-                        <div class="text-truncate" title="{{ req.hod_remarks }}">
-                            {{ req.hod_remarks|default:"-" }}
+                    <td style="max-width: 180px;">
+                        <div class="text-truncate"
+                             title="{{ req.hod_remarks }}">
+                            {{ req.hod_remarks|default:"No remarks" }}
                         </div>
                     </td>
 
-                    <td>
-                        <span class="badge bg-success">{{ req.status }}</span>
+                    <td class="text-center">
+                        <span class="badge bg-warning text-dark">
+                            {{ req.status }}
+                        </span>
                     </td>
 
-                    <td>
+                    <td class="text-center">
+
+                        <!-- Approve -->
                         <a href="{% url 'principal_approve' req.id %}"
-                           class="btn btn-success btn-sm me-2">Approve</a>
+                           class="btn btn-success btn-sm btn-action me-1"
+                           onclick="return confirm('Approve this request?')">
+                            Approve
+                        </a>
+
+                        <!-- Reject -->
                         <a href="{% url 'principal_reject' req.id %}"
-                           class="btn btn-danger btn-sm">Reject</a>
+                           class="btn btn-danger btn-sm btn-action"
+                           onclick="return confirm('Reject this request?')">
+                            Reject
+                        </a>
+
                     </td>
+
                 </tr>
+
                 {% empty %}
+
                 <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        No requests awaiting principal approval.
+                    <td colspan="8" class="text-center text-muted empty-state">
+                        🎉 No requests awaiting principal approval.
                     </td>
                 </tr>
+
                 {% endfor %}
 
                 </tbody>
+
             </table>
+
         </div>
     </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

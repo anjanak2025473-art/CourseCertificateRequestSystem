@@ -4,13 +4,14 @@ from django.conf import settings
 
 
 class User(AbstractUser):
+    email = models.EmailField(unique=False)
 
     ROLE_CHOICES = (
-    ('student', 'Student'),
-    ('hod', 'HOD'),
-    ('principal', 'Principal'),   # ✅ ADD THIS
-    ('staff', 'Office Staff'),
-)
+        ('student', 'Student'),
+        ('hod', 'HOD'),
+        ('principal', 'Principal'),
+        ('staff', 'Office Staff'),
+    )
     DEPARTMENT_CHOICES = (
         ('CS', 'Computer Science'),
         ('ECO', 'Economics'),
@@ -24,29 +25,32 @@ class User(AbstractUser):
     )
 
     role = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=ROLE_CHOICES,
         default='student'
     )
 
     department = models.CharField(
-        max_length=20,
+        max_length=20,   # ← correct,
         choices=DEPARTMENT_CHOICES,
-        blank=True
+        blank=True,
+        null=True
     )
 
     def __str__(self):
-        return f"{self.username} ({self.role} - {self.department})"
+        return f"{self.username} ({self.role})"
+
 
 class CertificateRequest(models.Model):
 
     STATUS_CHOICES = (
-    ('Pending', 'Pending'),                 # Student → HOD
-    ('HOD Approved', 'HOD Approved'),       # HOD → Principal
-    ('Principal Approved', 'Principal Approved'),  # ✅ NEW
-    ('Rejected', 'Rejected'),
-    ('Completed', 'Completed'),             # Staff
-)
+        ('Pending', 'Pending'),
+        ('HOD Approved', 'HOD Approved'),
+        ('Principal Approved', 'Principal Approved'),
+        ('Rejected by HOD', 'Rejected by HOD'),
+        ('Rejected by Principal', 'Rejected by Principal'),
+        ('Completed', 'Completed'),
+    )
 
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -55,19 +59,37 @@ class CertificateRequest(models.Model):
     )
 
     certificate_type = models.CharField(max_length=100)
+
     purpose = models.TextField()
 
     status = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=STATUS_CHOICES,
         default='Pending'
     )
 
-    hod_remarks = models.TextField(blank=True)
-    staff_remarks = models.TextField(blank=True)
+    hod_remarks = models.TextField(
+        blank=True,
+        null=True
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    principal_remarks = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    staff_remarks = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     def __str__(self):
         return f"{self.student.username} - {self.certificate_type} ({self.status})"
-        email = models.EmailField()

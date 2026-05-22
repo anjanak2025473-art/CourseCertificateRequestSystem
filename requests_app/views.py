@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout, get_user_model
+from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.core.mail import EmailMessage
 from django.conf import settings
 
-from .forms import CertificateRequestForm, LoginForm
+from .forms import CertificateRequestForm
 from .models import CertificateRequest
 
 from reportlab.pdfgen import canvas
@@ -26,7 +26,7 @@ def register_student(request):
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
-        role = request.POST.get('role')
+        role = 'student'
         department = request.POST.get('department')
 
         if not email:                          # ← ADD THIS CHECK
@@ -43,18 +43,13 @@ def register_student(request):
             username=username,
             email=email,          # ✅ SAVE EMAIL
             password=password,
-            role=role,
+            role = role,
             department=department
         )
 
         login(request, user)
 
-        if role == 'student':
-            return redirect('student_dashboard')
-        elif role == 'hod':
-            return redirect('hod_dashboard')
-        elif role == 'staff':
-            return redirect('staff_dashboard')
+        return redirect('student_dashboard')
 
     return render(request, 'register.html')
 
@@ -80,26 +75,32 @@ class SafePasswordResetView(PasswordResetView):
 # -------------------------
 
 def user_login(request):
+
     if request.method == "POST":
+
         form = AuthenticationForm(request, data=request.POST)
 
         if form.is_valid():
+
             user = form.get_user()
             login(request, user)
 
             if user.role == 'student':
                 return redirect('student_dashboard')
+
             elif user.role == 'hod':
                 return redirect('hod_dashboard')
-            elif user.role == 'staff':
-                return redirect('staff_dashboard')
+
             elif user.role == 'principal':
                 return redirect('principal_dashboard')
+
+            elif user.role == 'staff':
+                return redirect('staff_dashboard')
+
     else:
         form = AuthenticationForm()
 
     return render(request, "login.html", {"form": form})
-
 # -------------------------
 # REQUEST CERTIFICATE
 # -------------------------
@@ -200,7 +201,7 @@ def reject_request(request, request_id):
 
     if request.method == "POST":
         remarks = request.POST.get('remarks')
-        certificate.status = "Rejected"
+        certificate.status = "Rejected by HOD"
         certificate.hod_remarks = remarks
         certificate.save()
         return redirect('hod_dashboard')
@@ -229,15 +230,21 @@ def principal_dashboard(request):
 
 @login_required
 def principal_approve(request, request_id):
+
     if request.user.role != 'principal':
         return redirect('login')
 
-    certificate = get_object_or_404(CertificateRequest, id=request_id)
+    certificate = get_object_or_404(
+        CertificateRequest,
+        id=request_id
+    )
 
     if request.method == "POST":
+
         remarks = request.POST.get('remarks')
+
         certificate.status = "Principal Approved"
-        certificate.staff_remarks = remarks   # or create principal_remarks
+        certificate.principal_remarks = remarks
         certificate.save()
 
         return redirect('principal_dashboard')
@@ -245,7 +252,6 @@ def principal_approve(request, request_id):
     return render(request, 'principal_approve.html', {
         'certificate': certificate
     })
-
 
 @login_required
 def principal_reject(request, request_id):
@@ -256,8 +262,8 @@ def principal_reject(request, request_id):
 
     if request.method == "POST":
         remarks = request.POST.get('remarks')
-        certificate.status = "Rejected"
-        certificate.staff_remarks = remarks
+        certificate.status = "Rejected by Principal"
+        certificate.principal_remarks = remarks
         certificate.save()
 
         return redirect('principal_dashboard')
