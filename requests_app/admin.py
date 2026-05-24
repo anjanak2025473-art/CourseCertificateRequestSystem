@@ -5,12 +5,23 @@ from .models import User, CertificateRequest
 from .views import generate_certificate
 
 
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.core.mail import EmailMessage
+from django.conf import settings
+from .models import User, CertificateRequest
+from .views import generate_certificate
+
+
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'email', 'role', 'department', 'is_staff')
     list_filter = ('role', 'department')
     search_fields = ('username', 'email')
-
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ('Custom Fields', {'fields': ('role', 'department')}),
+    )
+    add_fieldsets = BaseUserAdmin.add_fieldsets
 
 def mark_ready_and_send_email(modeladmin, request, queryset):
     for certificate in queryset:
