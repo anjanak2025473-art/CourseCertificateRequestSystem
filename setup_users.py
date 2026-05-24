@@ -21,3 +21,12 @@ p.role = 'principal'
 p.email = 'principal@gmail.com'
 p.save()
 print('Principal ready!')
+
+# HOD CS
+h, _ = User.objects.get_or_create(username='hod_cs')
+h.set_password('Hod@2026')
+h.role = 'hod'
+h.department = 'CS'
+h.email = 'hod_cs@gmail.com'
+h.save()
+print('HOD CS ready!')
