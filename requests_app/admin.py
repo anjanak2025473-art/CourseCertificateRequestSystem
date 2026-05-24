@@ -1,11 +1,4 @@
 from django.contrib import admin
-from django.core.mail import EmailMessage
-from django.conf import settings
-from .models import User, CertificateRequest
-from .views import generate_certificate
-
-
-from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.core.mail import EmailMessage
 from django.conf import settings
@@ -23,14 +16,13 @@ class UserAdmin(BaseUserAdmin):
     )
     add_fieldsets = BaseUserAdmin.add_fieldsets
 
+
 def mark_ready_and_send_email(modeladmin, request, queryset):
     for certificate in queryset:
         if certificate.status == "Principal Approved":
             certificate.status = "Completed"
             certificate.save()
-
             pdf_file = generate_certificate(certificate)
-
             if certificate.student.email:
                 try:
                     email = EmailMessage(
@@ -41,8 +33,13 @@ def mark_ready_and_send_email(modeladmin, request, queryset):
                     )
                     email.attach("Certificate.pdf", pdf_file.read(), "application/pdf")
                     email.send(fail_silently=False)
+                    modeladmin.message_user(request, f"Email sent to {certificate.student.email} ✅")
                 except Exception as e:
-                    modeladmin.message_user(request, f"Email failed for {certificate.student.username}: {e}", level='error')
+                    modeladmin.message_user(request, f"Email FAILED: {e}", level='error')
+            else:
+                modeladmin.message_user(request, f"No email for {certificate.student.username}", level='warning')
+        else:
+            modeladmin.message_user(request, f"Skipped - status is {certificate.status}", level='warning')
 
 mark_ready_and_send_email.short_description = "✅ Mark as Ready & Send Certificate Email"
 
