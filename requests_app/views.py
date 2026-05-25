@@ -348,7 +348,6 @@ def generate_certificate(certificate):
     buffer.seek(0)
 
     return buffer
-
 @login_required
 def mark_ready(request, request_id):
     if request.user.role != 'staff':
@@ -366,7 +365,16 @@ def mark_ready(request, request_id):
     certificate.status = "Completed"
     certificate.save()
 
-    pdf_file = generate_certificate(certificate)
+    try:
+        pdf_file = generate_certificate(certificate)
+    except Exception as e:
+        return render(request, 'admin_dashboard.html', {
+            'requests': CertificateRequest.objects.filter(
+                status="Principal Approved",
+                student__department=request.user.department
+            ).order_by('-created_at'),
+            'error': f"PDF generation failed: {e}"
+        })
 
     if certificate.student.email:
         try:
@@ -379,43 +387,12 @@ def mark_ready(request, request_id):
             email.attach("Certificate.pdf", pdf_file.read(), "application/pdf")
             email.send(fail_silently=False)
         except Exception as e:
-            print(f"Email sending failed: {e}")
-
-    return redirect('staff_dashboard')
-
-@login_required
-def resend_certificate_email(request, request_id):
-    if request.user.role != 'staff':
-        return redirect('login')
-
-    certificate = get_object_or_404(
-        CertificateRequest,
-        id=request_id,
-        student__department=request.user.department
-    )
-
-    if not certificate.student.email:
-        # No email on record — show error
-        return render(request, 'admin_dashboard.html', {
-            'requests': CertificateRequest.objects.filter(
-                status="Principal Approved",
-                student__department=request.user.department
-            ).order_by('-created_at'),
-            'error': f"Student {certificate.student.username} has no email address saved."
-        })
-
-    try:
-        pdf_file = generate_certificate(certificate)
-        email = EmailMessage(
-            subject="Your Certificate is Ready",
-            body="Dear Student,\n\nPlease find your certificate attached.\n\nRegards,\nBharata Mata College Office",
-            from_email=settings.EMAIL_HOST_USER,
-            to=[certificate.student.email],
-        )
-        email.attach("Certificate.pdf", pdf_file.read(), "application/pdf")
-        email.send(fail_silently=False)
-        print(f"Email resent to {certificate.student.email}")
-    except Exception as e:
-        print(f"Resend failed: {e}")
+            return render(request, 'admin_dashboard.html', {
+                'requests': CertificateRequest.objects.filter(
+                    status="Principal Approved",
+                    student__department=request.user.department
+                ).order_by('-created_at'),
+                'error': f"Email failed: {e}"
+            })
 
     return redirect('staff_dashboard')
