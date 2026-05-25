@@ -30,3 +30,14 @@ h.department = 'CS'
 h.email = 'hod_cs@gmail.com'
 h.save()
 print('HOD CS ready!')
+
+# Office Staff
+s, _ = User.objects.get_or_create(username='staff1')
+s.set_password('Staff@2026')
+s.role = 'staff'
+s.department = 'CS'
+s.email = 'staff1@gmail.com'
+s.is_staff = True
+s.save()
+print('Staff ready!')
+
