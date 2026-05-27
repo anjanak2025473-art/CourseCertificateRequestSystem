@@ -155,7 +155,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
-DEFAULT_FROM_EMAIL = 'anjanak2025473@gmail.com'
+DEFAULT_FROM_EMAIL = 'anjanak2k26@gmail.com'
 EMAIL_TIMEOUT = 10
 
 # Required for password reset links to work correctly
