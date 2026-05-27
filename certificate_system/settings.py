@@ -199,29 +199,48 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-
 # =========================================================
-# EMAIL CONFIGURATION (SENDGRID)
+# EMAIL CONFIGURATION — DUAL PROVIDER WITH FALLBACK
 # =========================================================
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_TIMEOUT = 30
 
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
+# Primary provider: 'sendgrid' or 'gmail'
+EMAIL_PROVIDER = os.getenv('EMAIL_PROVIDER', 'gmail')
 
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
+# --- SendGrid Config ---
+SENDGRID_HOST = 'smtp.sendgrid.net'
+SENDGRID_PORT = 587
+SENDGRID_USER = 'apikey'
+SENDGRID_PASSWORD = os.getenv('SENDGRID_API_KEY', '')
+SENDGRID_FROM = os.getenv('SENDGRID_FROM_EMAIL', '')
 
-EMAIL_HOST_USER = 'apikey'
+# --- Gmail Config ---
+GMAIL_HOST = 'smtp.gmail.com'
+GMAIL_PORT = 587
+GMAIL_USER = os.getenv('GMAIL_USER', '')
+GMAIL_PASSWORD = os.getenv('GMAIL_PASSWORD', '')
+GMAIL_FROM = os.getenv('GMAIL_FROM_EMAIL', '')
 
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')
+# --- Set the active provider ---
+if EMAIL_PROVIDER == 'sendgrid':
+    EMAIL_HOST = SENDGRID_HOST
+    EMAIL_PORT = SENDGRID_PORT
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = SENDGRID_USER
+    EMAIL_HOST_PASSWORD = SENDGRID_PASSWORD
+    DEFAULT_FROM_EMAIL = SENDGRID_FROM
 
-DEFAULT_FROM_EMAIL = os.getenv(
-    'DEFAULT_FROM_EMAIL',
-    'noreply@certificate-system.com'
-)
-
-EMAIL_TIMEOUT = 20
+else:
+    EMAIL_HOST = GMAIL_HOST
+    EMAIL_PORT = GMAIL_PORT
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = GMAIL_USER
+    EMAIL_HOST_PASSWORD = GMAIL_PASSWORD
+    DEFAULT_FROM_EMAIL = GMAIL_FROM
 
 
 # =========================================================

@@ -1,10 +1,12 @@
+import os
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordResetView
 from django.contrib import messages
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, get_connection
 from django.conf import settings
 
 from smtplib import SMTPException
@@ -18,6 +20,9 @@ from .forms import CertificateRequestForm
 from .models import CertificateRequest
 
 User = get_user_model()
+
+# Setup logging so you can see email success/failure in terminal
+logger = logging.getLogger(__name__)
 
 
 # =========================================================
@@ -333,13 +338,19 @@ def staff_dashboard(request):
     if request.user.role != 'staff':
         return redirect('login')
 
+    # Show ALL Principal Approved requests (removed department filter)
     approved_requests = CertificateRequest.objects.filter(
-        status="Principal Approved",
-        student__department=request.user.department
+        status="Principal Approved"
     ).order_by('-created_at')
 
+    # Show last 20 completed for resend option
+    completed_requests = CertificateRequest.objects.filter(
+        status="Completed"
+    ).order_by('-updated_at')[:20]
+
     return render(request, 'admin_dashboard.html', {
-        'requests': approved_requests
+        'requests': approved_requests,
+        'completed_requests': completed_requests,
     })
 
 
@@ -451,6 +462,196 @@ def generate_certificate(certificate):
 
 
 # =========================================================
+# EMAIL SENDING HELPER (DUAL PROVIDER WITH FALLBACK)
+# =========================================================
+
+def send_certificate_email(certificate):
+    """
+    Try primary email provider, fall back to secondary on failure.
+    Returns (success: bool, message: str)
+    """
+    student = certificate.student
+    student_email = student.email.strip() if student.email else ''
+
+    # Check 1: Student has an email
+    if not student_email:
+        logger.warning(
+            f"Request #{certificate.id}: "
+            f"Student '{student.username}' has no email."
+        )
+        return False, f"Student '{student.username}' has no email address."
+
+    # Check 2: At least one provider is configured
+    has_gmail = bool(os.getenv('GMAIL_USER') and os.getenv('GMAIL_PASSWORD'))
+    has_sendgrid = bool(
+        os.getenv('SENDGRID_API_KEY') and os.getenv('SENDGRID_FROM_EMAIL')
+    )
+
+    if not has_gmail and not has_sendgrid:
+        logger.error("No email provider configured in .env")
+        return False, "No email provider configured. Contact admin."
+
+    # Generate PDF
+    try:
+        pdf_buffer = generate_certificate(certificate)
+        pdf_data = pdf_buffer.read()
+        pdf_buffer.close()
+    except Exception as e:
+        logger.error(f"PDF failed for request #{certificate.id}: {e}")
+        return False, f"PDF generation failed: {e}"
+
+    # Build email content
+    student_name = student.get_full_name() or student.username
+    course_name = certificate.course_name or "Course"
+    subject = f"Course Certificate Issued - {course_name}"
+
+    body_plain = (
+        f"Dear {student_name},\n\n"
+        f"Your course certificate has been processed and is ready.\n"
+        f"Please find the certificate attached to this email as a PDF.\n\n"
+        f"Request ID: #{certificate.id}\n"
+        f"Course: {course_name}\n"
+        f"Status: Completed\n\n"
+        f"Regards,\n"
+        f"Bharata Mata College Office"
+    )
+
+    body_html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;
+                border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+        <div style="background:#1a237e;padding:25px;text-align:center;">
+            <h1 style="color:#fff;margin:0;font-size:20px;">Bharata Mata College</h1>
+            <p style="color:#90caf9;margin:5px 0 0;font-size:12px;">
+                Course Certificate Request System
+            </p>
+        </div>
+        <div style="padding:25px;background:#fafafa;">
+            <p>Dear <strong>{student_name}</strong>,</p>
+            <p>Your course certificate has been processed and is ready.
+               Please find the certificate attached as a PDF.</p>
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;">
+                <tr>
+                    <td style="padding:10px;background:#e8eaf6;font-weight:600;
+                               border:1px solid #c5cae9;">Request ID</td>
+                    <td style="padding:10px;background:#fff;
+                               border:1px solid #c5cae9;">#{certificate.id}</td>
+                </tr>
+                <tr>
+                    <td style="padding:10px;background:#e8eaf6;font-weight:600;
+                               border:1px solid #c5cae9;">Course</td>
+                    <td style="padding:10px;background:#fff;
+                               border:1px solid #c5cae9;">{course_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding:10px;background:#e8eaf6;font-weight:600;
+                               border:1px solid #c5cae9;">Status</td>
+                    <td style="padding:10px;background:#fff;border:1px solid #c5cae9;
+                               color:#2e7d32;font-weight:600;">Completed</td>
+                </tr>
+            </table>
+            <p style="color:#666;font-size:13px;">
+                If you have any queries, contact the college office.</p>
+        </div>
+        <div style="background:#f5f5f5;padding:15px;text-align:center;
+                    font-size:11px;color:#999;">
+            Bharata Mata College, Thrikkakara, Kochi - 682041
+        </div>
+    </div>
+    """
+
+    # Build provider list (primary first, fallback second)
+    primary = os.getenv('EMAIL_PROVIDER', 'gmail')
+    providers = []
+
+    if primary == 'sendgrid' and has_sendgrid:
+        providers.append(('SendGrid', {
+            'host': 'smtp.sendgrid.net',
+            'port': 587,
+            'username': 'apikey',
+            'password': os.getenv('SENDGRID_API_KEY'),
+            'from': os.getenv('SENDGRID_FROM_EMAIL'),
+        }))
+
+    if primary == 'gmail' and has_gmail:
+        providers.append(('Gmail', {
+            'host': 'smtp.gmail.com',
+            'port': 587,
+            'username': os.getenv('GMAIL_USER'),
+            'password': os.getenv('GMAIL_PASSWORD'),
+            'from': os.getenv('GMAIL_FROM_EMAIL'),
+        }))
+
+    # Add fallback
+    if primary == 'sendgrid' and has_gmail:
+        providers.append(('Gmail (fallback)', {
+            'host': 'smtp.gmail.com',
+            'port': 587,
+            'username': os.getenv('GMAIL_USER'),
+            'password': os.getenv('GMAIL_PASSWORD'),
+            'from': os.getenv('GMAIL_FROM_EMAIL'),
+        }))
+
+    if primary == 'gmail' and has_sendgrid:
+        providers.append(('SendGrid (fallback)', {
+            'host': 'smtp.sendgrid.net',
+            'port': 587,
+            'username': 'apikey',
+            'password': os.getenv('SENDGRID_API_KEY'),
+            'from': os.getenv('SENDGRID_FROM_EMAIL'),
+        }))
+
+    # Try each provider
+    last_error = None
+
+    for provider_name, config in providers:
+        try:
+            connection = get_connection(
+                host=config['host'],
+                port=config['port'],
+                username=config['username'],
+                password=config['password'],
+                use_tls=True,
+                timeout=30,
+            )
+
+            email = EmailMessage(
+                subject=subject,
+                body=body_plain,
+                from_email=config['from'],
+                to=[student_email],
+                connection=connection,
+            )
+
+            email.attach(
+                f"Certificate_{certificate.id}.pdf",
+                pdf_data,
+                "application/pdf",
+            )
+
+            email.send(fail_silently=False)
+
+            logger.info(
+                f"Email sent via {provider_name} to {student_email} "
+                f"for request #{certificate.id}"
+            )
+
+            return True, f"Certificate emailed via {provider_name} to {student_email}"
+
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                f"{provider_name} failed for request #{certificate.id}: {e}"
+            )
+            continue
+
+    # All providers failed
+    logger.error(
+        f"All email providers failed for request #{certificate.id}: {last_error}"
+    )
+    return False, f"All email providers failed: {last_error}"
+
+
+# =========================================================
 # MARK CERTIFICATE AS READY
 # =========================================================
 
@@ -463,65 +664,30 @@ def mark_ready(request, request_id):
     certificate = get_object_or_404(
         CertificateRequest,
         id=request_id,
-        student__department=request.user.department
+        status="Principal Approved"
     )
 
     if certificate.status == "Completed":
+        messages.warning(request, "This certificate is already completed.")
         return redirect('staff_dashboard')
 
-    # Update status
+    # Step 1: Update status FIRST
     certificate.status = "Completed"
     certificate.save()
 
-    # Generate PDF
-    try:
-        pdf_file = generate_certificate(certificate)
+    # Step 2: Send email using dual-provider helper
+    success, message = send_certificate_email(certificate)
 
-    except Exception as e:
-
-        messages.error(
+    if success:
+        messages.success(request, f"Certificate completed. {message}")
+    else:
+        # Certificate IS completed, but email failed
+        # Staff can use "Resend" button later
+        messages.warning(
             request,
-            f"PDF generation failed: {e}"
+            f"Certificate marked as completed, but email failed: {message}. "
+            f"Use the Resend button to try again."
         )
-
-        return redirect('staff_dashboard')
-
-    # Send email
-    if certificate.student.email:
-
-        try:
-
-            email = EmailMessage(
-                subject="Your Certificate is Ready",
-                body=(
-                    "Dear Student,\n\n"
-                    "Please find your certificate attached.\n\n"
-                    "Regards,\n"
-                    "Bharata Mata College Office"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[certificate.student.email],
-            )
-
-            email.attach(
-                "Certificate.pdf",
-                pdf_file.read(),
-                "application/pdf"
-            )
-
-            email.send(fail_silently=False)
-
-            messages.success(
-                request,
-                "Certificate marked as completed and emailed."
-            )
-
-        except Exception as e:
-
-            messages.error(
-                request,
-                f"Email sending failed: {e}"
-            )
 
     return redirect('staff_dashboard')
 
@@ -533,58 +699,20 @@ def mark_ready(request, request_id):
 @login_required
 def resend_certificate_email(request, request_id):
 
-    if request.user.role != 'staff':
+    if request.user.role not in ('staff', 'admin'):
         return redirect('login')
 
     certificate = get_object_or_404(
         CertificateRequest,
         id=request_id,
-        student__department=request.user.department
+        status="Completed"
     )
 
-    if not certificate.student.email:
+    success, message = send_certificate_email(certificate)
 
-        messages.error(
-            request,
-            f"{certificate.student.username} has no email address."
-        )
-
-        return redirect('staff_dashboard')
-
-    try:
-
-        pdf_file = generate_certificate(certificate)
-
-        email = EmailMessage(
-            subject="Your Certificate is Ready",
-            body=(
-                "Dear Student,\n\n"
-                "Please find your certificate attached.\n\n"
-                "Regards,\n"
-                "Bharata Mata College Office"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[certificate.student.email],
-        )
-
-        email.attach(
-            "Certificate.pdf",
-            pdf_file.read(),
-            "application/pdf"
-        )
-
-        email.send(fail_silently=False)
-
-        messages.success(
-            request,
-            "Certificate email resent successfully."
-        )
-
-    except Exception as e:
-
-        messages.error(
-            request,
-            f"Resend failed: {e}"
-        )
+    if success:
+        messages.success(request, message)
+    else:
+        messages.error(request, message)
 
     return redirect('staff_dashboard')
