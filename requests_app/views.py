@@ -502,7 +502,7 @@ def send_certificate_email(certificate):
 
     # Build email content
     student_name = student.get_full_name() or student.username
-    course_name = certificate.course_name or "Course"
+    course_name = certificate.certificate_type or "Course"
     subject = f"Course Certificate Issued - {course_name}"
 
     body_plain = (
