@@ -462,39 +462,31 @@ def generate_certificate(certificate):
 
 
 # =========================================================
-# EMAIL SENDING HELPER (DUAL PROVIDER WITH FALLBACK)
+# EMAIL SENDING HELPER (SENDGRID API FOR RENDER / GMAIL FOR LOCAL)
 # =========================================================
 
 def send_certificate_email(certificate):
     """
-    Try primary email provider, fall back to secondary on failure.
+    Uses SendGrid HTTP API (works on Render free tier)
+    Falls back to Gmail SMTP (works on localhost).
     Returns (success: bool, message: str)
     """
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
+
     student = certificate.student
     student_email = student.email.strip() if student.email else ''
 
     # Check 1: Student has an email
     if not student_email:
-        logger.warning(
-            f"Request #{certificate.id}: "
-            f"Student '{student.username}' has no email."
-        )
+        logger.warning(f"Request #{certificate.id}: Student '{student.username}' has no email.")
         return False, f"Student '{student.username}' has no email address."
-
-    # Check 2: At least one provider is configured
-    has_gmail = bool(os.getenv('GMAIL_USER') and os.getenv('GMAIL_PASSWORD'))
-    has_sendgrid = bool(
-        os.getenv('SENDGRID_API_KEY') and os.getenv('SENDGRID_FROM_EMAIL')
-    )
-
-    if not has_gmail and not has_sendgrid:
-        logger.error("No email provider configured in .env")
-        return False, "No email provider configured. Contact admin."
 
     # Generate PDF
     try:
         pdf_buffer = generate_certificate(certificate)
-        pdf_data = pdf_buffer.read()
+        import base64
+        pdf_data_b64 = base64.b64encode(pdf_buffer.read()).decode()
         pdf_buffer.close()
     except Exception as e:
         logger.error(f"PDF failed for request #{certificate.id}: {e}")
@@ -504,17 +496,6 @@ def send_certificate_email(certificate):
     student_name = student.get_full_name() or student.username
     course_name = certificate.certificate_type or "Course"
     subject = f"Course Certificate Issued - {course_name}"
-
-    body_plain = (
-        f"Dear {student_name},\n\n"
-        f"Your course certificate has been processed and is ready.\n"
-        f"Please find the certificate attached to this email as a PDF.\n\n"
-        f"Request ID: #{certificate.id}\n"
-        f"Course: {course_name}\n"
-        f"Status: Completed\n\n"
-        f"Regards,\n"
-        f"Bharata Mata College Office"
-    )
 
     body_html = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;
@@ -559,98 +540,74 @@ def send_certificate_email(certificate):
     </div>
     """
 
-    # Build provider list (primary first, fallback second)
-    primary = os.getenv('EMAIL_PROVIDER', 'gmail')
-    providers = []
+    # --- Attempt 1: SendGrid API (Works on Render) ---
+    sg_key = os.getenv('SENDGRID_API_KEY', '')
+    sg_from = os.getenv('SENDGRID_FROM_EMAIL', '')
 
-    if primary == 'sendgrid' and has_sendgrid:
-        providers.append(('SendGrid', {
-            'host': 'smtp.sendgrid.net',
-            'port': 587,
-            'username': 'apikey',
-            'password': os.getenv('SENDGRID_API_KEY'),
-            'from': os.getenv('SENDGRID_FROM_EMAIL'),
-        }))
+    if sg_key and sg_from:
+        try:
+            message = Mail(
+                from_email=sg_from,
+                to_emails=student_email,
+                subject=subject,
+                html_content=body_html,
+            )
 
-    if primary == 'gmail' and has_gmail:
-        providers.append(('Gmail', {
-            'host': 'smtp.gmail.com',
-            'port': 587,
-            'username': os.getenv('GMAIL_USER'),
-            'password': os.getenv('GMAIL_PASSWORD'),
-            'from': os.getenv('GMAIL_FROM_EMAIL'),
-        }))
+            # Attach PDF
+            attachment = Attachment(
+                FileContent(pdf_data_b64),
+                FileName=f"Certificate_{certificate.id}.pdf",
+                FileType("application/pdf"),
+                Disposition("attachment")
+            )
+            message.attachment = attachment
 
-    # Add fallback
-    if primary == 'sendgrid' and has_gmail:
-        providers.append(('Gmail (fallback)', {
-            'host': 'smtp.gmail.com',
-            'port': 587,
-            'username': os.getenv('GMAIL_USER'),
-            'password': os.getenv('GMAIL_PASSWORD'),
-            'from': os.getenv('GMAIL_FROM_EMAIL'),
-        }))
+            sg = SendGridAPIClient(sg_key)
+            response = sg.send(message)
 
-    if primary == 'gmail' and has_sendgrid:
-        providers.append(('SendGrid (fallback)', {
-            'host': 'smtp.sendgrid.net',
-            'port': 587,
-            'username': 'apikey',
-            'password': os.getenv('SENDGRID_API_KEY'),
-            'from': os.getenv('SENDGRID_FROM_EMAIL'),
-        }))
+            logger.info(f"Email sent via SendGrid API to {student_email} for request #{certificate.id}")
+            return True, f"Certificate emailed via SendGrid to {student_email}"
 
-    # Try each provider
-    last_error = None
+        except Exception as e:
+            logger.warning(f"SendGrid API failed for request #{certificate.id}: {e}")
 
-    for provider_name, config in providers:
+    # --- Attempt 2: Gmail SMTP (Works on Localhost) ---
+    gmail_user = os.getenv('GMAIL_USER', '')
+    gmail_pass = os.getenv('GMAIL_PASSWORD', '')
+    gmail_from = os.getenv('GMAIL_FROM_EMAIL', '')
+
+    if gmail_user and gmail_pass:
         try:
             connection = get_connection(
-                host=config['host'],
-                port=config['port'],
-                username=config['username'],
-                password=config['password'],
+                host='smtp.gmail.com',
+                port=587,
+                username=gmail_user,
+                password=gmail_pass,
                 use_tls=True,
                 timeout=30,
             )
 
             email = EmailMessage(
                 subject=subject,
-                body=body_plain,
-                from_email=config['from'],
+                body=f"Dear {student_name},\n\nYour certificate is attached.",
+                from_email=gmail_from,
                 to=[student_email],
                 connection=connection,
             )
 
-            email.attach(
-                f"Certificate_{certificate.id}.pdf",
-                pdf_data,
-                "application/pdf",
-            )
-
+            from io import BytesIO
+            import base64
+            pdf_bytes = base64.b64decode(pdf_data_b64)
+            email.attach(f"Certificate_{certificate.id}.pdf", pdf_bytes, "application/pdf")
             email.send(fail_silently=False)
 
-            logger.info(
-                f"Email sent via {provider_name} to {student_email} "
-                f"for request #{certificate.id}"
-            )
-
-            return True, f"Certificate emailed via {provider_name} to {student_email}"
+            logger.info(f"Email sent via Gmail to {student_email} for request #{certificate.id}")
+            return True, f"Certificate emailed via Gmail to {student_email}"
 
         except Exception as e:
-            last_error = e
-            logger.warning(
-                f"{provider_name} failed for request #{certificate.id}: {e}"
-            )
-            continue
+            logger.warning(f"Gmail failed for request #{certificate.id}: {e}")
 
-    # All providers failed
-    logger.error(
-        f"All email providers failed for request #{certificate.id}: {last_error}"
-    )
-    return False, f"All email providers failed: {last_error}"
-
-
+    return False, "Both SendGrid and Gmail failed. Check API keys and network."
 # =========================================================
 # MARK CERTIFICATE AS READY
 # =========================================================
@@ -675,14 +632,12 @@ def mark_ready(request, request_id):
     certificate.status = "Completed"
     certificate.save()
 
-    # Step 2: Send email using dual-provider helper
+    # Step 2: Send email using helper
     success, message = send_certificate_email(certificate)
 
     if success:
         messages.success(request, f"Certificate completed. {message}")
     else:
-        # Certificate IS completed, but email failed
-        # Staff can use "Resend" button later
         messages.warning(
             request,
             f"Certificate marked as completed, but email failed: {message}. "
@@ -690,7 +645,6 @@ def mark_ready(request, request_id):
         )
 
     return redirect('staff_dashboard')
-
 
 # =========================================================
 # RESEND CERTIFICATE EMAIL
