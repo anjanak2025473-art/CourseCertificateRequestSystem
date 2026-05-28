@@ -366,29 +366,56 @@ def generate_certificate(certificate):
 
     pdf = canvas.Canvas(buffer, pagesize=A4)
 
-    # --- College Heading ---
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawCentredString(width / 2, height - 60, "BHARATA MATA COLLEGE (AUTONOMOUS),")
+    # =========================
+    # HEADER
+    # =========================
 
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawCentredString(width / 2, height - 80, "THRIKKAKARA")
+    pdf.setFont("Times-Bold", 22)
+    pdf.drawCentredString(
+        width / 2,
+        height - 80,
+        "BHARATA MATA COLLEGE (AUTONOMOUS),"
+    )
 
-    # --- Date ---
+    pdf.setFont("Times-Bold", 20)
+    pdf.drawCentredString(
+        width / 2,
+        height - 120,
+        "THRIKKAKARA"
+    )
+
+    # Date
     today = date.today().strftime("%d/%m/%Y")
-    pdf.setFont("Helvetica", 11)
-    pdf.drawRightString(width - 60, height - 60, f"Date: {today}")
 
-    # --- Title ---
-    pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawCentredString(width / 2, height - 120, "CERTIFICATE")
+    pdf.setFont("Times-Roman", 14)
+    pdf.drawRightString(
+        width - 70,
+        height - 150,
+        f"Date: {today}"
+    )
 
-    # Title underline
-    pdf.line(width / 2 - 60, height - 125, width / 2 + 60, height - 125)
+    # =========================
+    # TITLE
+    # =========================
 
-    # --- Body ---
-    pdf.setFont("Helvetica", 12)
-    text = pdf.beginText(80, height - 170)
-    text.setLeading(22)
+    pdf.setFont("Times-Bold", 24)
+
+    pdf.drawCentredString(
+        width / 2,
+        height - 210,
+        "CERTIFICATE"
+    )
+
+    pdf.line(
+        width / 2 - 90,
+        height - 215,
+        width / 2 + 90,
+        height - 215
+    )
+
+    # =========================
+    # BODY
+    # =========================
 
     student_name = (
         certificate.student.get_full_name()
@@ -397,60 +424,159 @@ def generate_certificate(certificate):
 
     year = certificate.created_at.year
 
-    text.textLine("This is to certify that")
-    
-    # Student name in bold (draw separately for emphasis)
-    pdf.drawText(text)
-    
-    pdf.setFont("Helvetica-Bold", 13)
-    pdf.drawCentredString(width / 2, height - 220, student_name)
-    
-    pdf.setFont("Helvetica", 12)
-    text = pdf.beginText(80, height - 245)
-    text.setLeading(22)
+    x = 90
+    y = height - 300
 
-    text.textLine("is a student of this college for the IIIrd year Computer")
-    text.textLine("Science (Aided) B.A./B.Sc./B.Com./BBA/B.S.W./M.A./M.Sc./")
-    text.textLine(f"M.S.W./M.Com degree course during the academic year(s) {year}-{year + 1}")
-    text.textLine("and that his/her character and conduct have been Good.")
+    pdf.setFont("Times-Italic", 17)
 
-    pdf.drawText(text)
+    pdf.drawString(
+        x,
+        y,
+        "This is to certify that"
+    )
 
-    # --- Seal & Signatures Label ---
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawCentredString(width / 2, 180, "Seal & Signatures")
+    # Student Name
+    pdf.setFont("Times-Bold", 18)
 
-    # --- Left Side: Seal ---
-    # Outer circle
-    pdf.circle(150, 110, 50)
-    # Inner circle
-    pdf.circle(150, 110, 40)
-    # College name around seal
-    pdf.setFont("Helvetica-Bold", 7)
-    pdf.drawCentredString(150, 140, "BHARATA MATA COLLEGE")
-    pdf.setFont("Helvetica-Bold", 9)
-    pdf.drawCentredString(150, 130, "B.M.C.")
-    pdf.setFont("Helvetica", 6)
-    pdf.drawCentredString(150, 120, "(AUTONOMOUS)")
-    pdf.drawCentredString(150, 100, "THRIKKAKARA, KOCHI-21")
+    pdf.drawString(
+        330,
+        y,
+        student_name
+    )
 
-    # --- Right Side: Signature & Stamp ---
-    # Signature line
-    pdf.line(width - 200, 145, width - 60, 145)
-    
-    # Stamp text
-    pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(width - 170, 120, "Principal")
-    
-    pdf.setFont("Helvetica", 8)
-    pdf.drawString(width - 200, 105, "PRINCIPAL IN-CHARGE")
-    
-    pdf.setFont("Helvetica-Bold", 8)
-    pdf.drawString(width - 190, 90, "BHARATA MATA COLLEGE")
-    
-    pdf.setFont("Helvetica", 8)
-    pdf.drawString(width - 190, 78, "(AUTONOMOUS)")
-    pdf.drawString(width - 190, 66, "THRIKKAKARA")
+    # Dotted line
+    pdf.line(250, y - 3, 520, y - 3)
+
+    # =========================
+
+    y -= 60
+
+    pdf.setFont("Times-Italic", 17)
+
+    pdf.drawString(
+        x,
+        y,
+        "is a student of this college for the"
+    )
+
+    pdf.setFont("Times-Bold", 17)
+
+    course_text = "IIIrd year Computer Science (Aided)"
+
+    pdf.drawString(
+        350,
+        y,
+        course_text
+    )
+
+    pdf.line(330, y - 3, 700, y - 3)
+
+    # =========================
+
+    y -= 70
+
+    pdf.setFont("Times-Italic", 17)
+
+    text = (
+        f"degree course during the academic year(s) "
+        f"{year}-{str(year + 1)[-2:]}"
+    )
+
+    pdf.drawString(
+        x,
+        y,
+        text
+    )
+
+    pdf.line(90, y - 3, 470, y - 3)
+
+    # =========================
+
+    y -= 70
+
+    pdf.drawString(
+        x,
+        y,
+        "and that his/her character and conduct have been Good."
+    )
+
+    # =========================
+    # SEAL
+    # =========================
+
+    seal_x = 170
+    seal_y = 140
+
+    pdf.circle(seal_x, seal_y, 55)
+    pdf.circle(seal_x, seal_y, 45)
+
+    pdf.setFont("Times-Bold", 8)
+
+    pdf.drawCentredString(
+        seal_x,
+        seal_y + 20,
+        "BHARATA MATA COLLEGE"
+    )
+
+    pdf.drawCentredString(
+        seal_x,
+        seal_y,
+        "(AUTONOMOUS)"
+    )
+
+    pdf.drawCentredString(
+        seal_x,
+        seal_y - 20,
+        "THRIKKAKARA"
+    )
+
+    # =========================
+    # PRINCIPAL SIGNATURE
+    # =========================
+
+    pdf.setFont("Helvetica-Oblique", 26)
+
+    pdf.drawString(
+        width - 240,
+        150,
+        "Ancy"
+    )
+
+    pdf.line(width - 260, 135, width - 80, 135)
+
+    pdf.setFont("Times-Bold", 16)
+
+    pdf.drawString(
+        width - 200,
+        105,
+        "Principal"
+    )
+
+    pdf.setFont("Times-Roman", 11)
+
+    pdf.drawString(
+        width - 260,
+        88,
+        "PRINCIPAL IN-CHARGE"
+    )
+
+    pdf.drawString(
+        width - 250,
+        72,
+        "BHARATA MATA COLLEGE"
+    )
+
+    pdf.drawString(
+        width - 220,
+        56,
+        "(AUTONOMOUS)"
+    )
+
+    pdf.drawString(
+        width - 220,
+        42,
+        "THRIKKAKARA"
+    )
 
     pdf.showPage()
     pdf.save()
