@@ -460,7 +460,6 @@ def generate_certificate(certificate):
 
     return buffer
 
-
 # =========================================================
 # EMAIL SENDING HELPER (SENDGRID API FOR RENDER / GMAIL FOR LOCAL)
 # =========================================================
@@ -550,15 +549,14 @@ def send_certificate_email(certificate):
                 from_email=sg_from,
                 to_emails=student_email,
                 subject=subject,
-                html_content=body_html,
+                html_content=body_html
             )
 
-            # Attach PDF
             attachment = Attachment(
-                FileContent(pdf_data_b64),
-                FileName=f"Certificate_{certificate.id}.pdf",
-                FileType("application/pdf"),
-                Disposition("attachment")
+                file_content=FileContent(pdf_data_b64),
+                file_name=FileName(f"Certificate_{certificate.id}.pdf"),
+                file_type=FileType("application/pdf"),
+                disposition=Disposition("attachment")
             )
             message.attachment = attachment
 
@@ -584,7 +582,7 @@ def send_certificate_email(certificate):
                 username=gmail_user,
                 password=gmail_pass,
                 use_tls=True,
-                timeout=30,
+                timeout=30
             )
 
             email = EmailMessage(
@@ -592,11 +590,9 @@ def send_certificate_email(certificate):
                 body=f"Dear {student_name},\n\nYour certificate is attached.",
                 from_email=gmail_from,
                 to=[student_email],
-                connection=connection,
+                connection=connection
             )
 
-            from io import BytesIO
-            import base64
             pdf_bytes = base64.b64decode(pdf_data_b64)
             email.attach(f"Certificate_{certificate.id}.pdf", pdf_bytes, "application/pdf")
             email.send(fail_silently=False)
