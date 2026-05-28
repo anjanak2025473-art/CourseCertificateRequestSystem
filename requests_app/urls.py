@@ -17,6 +17,5 @@ urlpatterns = [
     path('principal/', views.principal_dashboard, name='principal_dashboard'),
     path('principal/approve/<int:request_id>/', views.principal_approve, name='principal_approve'),
     path('principal/reject/<int:request_id>/', views.principal_reject, name='principal_reject'),
-    path('resend-email/<int:request_id>/', views.resend_certificate_email, name='resend_certificate_email'),
-    
+    path('resend/<int:request_id>/', views.resend_certificate_email, name='resend_certificate_email'),
 ]
