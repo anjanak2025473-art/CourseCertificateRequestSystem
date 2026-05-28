@@ -366,92 +366,91 @@ def generate_certificate(certificate):
 
     pdf = canvas.Canvas(buffer, pagesize=A4)
 
-    # College Heading
-    pdf.setFont("Helvetica-Bold", 18)
-    pdf.drawCentredString(
-        width / 2,
-        height - 80,
-        "BHARATA MATA COLLEGE (AUTONOMOUS)"
-    )
+    # --- College Heading ---
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawCentredString(width / 2, height - 60, "BHARATA MATA COLLEGE (AUTONOMOUS),")
 
     pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawCentredString(
-        width / 2,
-        height - 105,
-        "THRIKKAKARA"
-    )
+    pdf.drawCentredString(width / 2, height - 80, "THRIKKAKARA")
 
-    # Date
+    # --- Date ---
     today = date.today().strftime("%d/%m/%Y")
-
     pdf.setFont("Helvetica", 11)
-    pdf.drawRightString(
-        width - 50,
-        height - 130,
-        f"Date: {today}"
-    )
+    pdf.drawRightString(width - 60, height - 60, f"Date: {today}")
 
-    # Title
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawCentredString(
-        width / 2,
-        height - 160,
-        "CERTIFICATE"
-    )
+    # --- Title ---
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawCentredString(width / 2, height - 120, "CERTIFICATE")
 
-    pdf.line(
-        width / 2 - 70,
-        height - 165,
-        width / 2 + 70,
-        height - 165
-    )
+    # Title underline
+    pdf.line(width / 2 - 60, height - 125, width / 2 + 60, height - 125)
 
-    # Body
+    # --- Body ---
     pdf.setFont("Helvetica", 12)
-
-    text = pdf.beginText(80, height - 220)
-
-    text.setLeading(25)
+    text = pdf.beginText(80, height - 170)
+    text.setLeading(22)
 
     student_name = (
         certificate.student.get_full_name()
         or certificate.student.username
     )
 
-    department = certificate.student.get_department_display()
-
     year = certificate.created_at.year
 
-    text.textLine(
-        f"This is to certify that {student_name}"
-    )
+    text.textLine("This is to certify that")
+    
+    # Student name in bold (draw separately for emphasis)
+    pdf.drawText(text)
+    
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawCentredString(width / 2, height - 220, student_name)
+    
+    pdf.setFont("Helvetica", 12)
+    text = pdf.beginText(80, height - 245)
+    text.setLeading(22)
 
-    text.textLine(
-        f"is a student of {department} Department"
-    )
-
-    text.textLine(
-        f"for the academic year {year}-{year + 1}."
-    )
-
-    text.textLine("")
-
-    text.textLine(
-        "His/Her character and conduct have been satisfactory."
-    )
+    text.textLine("is a student of this college for the IIIrd year Computer")
+    text.textLine("Science (Aided) B.A./B.Sc./B.Com./BBA/B.S.W./M.A./M.Sc./")
+    text.textLine(f"M.S.W./M.Com degree course during the academic year(s) {year}-{year + 1}")
+    text.textLine("and that his/her character and conduct have been Good.")
 
     pdf.drawText(text)
 
-    # Signature
-    pdf.line(width - 220, 120, width - 60, 120)
+    # --- Seal & Signatures Label ---
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawCentredString(width / 2, 180, "Seal & Signatures")
 
-    pdf.drawString(width - 170, 100, "Principal")
-    pdf.drawString(width - 220, 85, "BHARATA MATA COLLEGE")
-    pdf.drawString(width - 200, 70, "THRIKKAKARA")
+    # --- Left Side: Seal ---
+    # Outer circle
+    pdf.circle(150, 110, 50)
+    # Inner circle
+    pdf.circle(150, 110, 40)
+    # College name around seal
+    pdf.setFont("Helvetica-Bold", 7)
+    pdf.drawCentredString(150, 140, "BHARATA MATA COLLEGE")
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawCentredString(150, 130, "B.M.C.")
+    pdf.setFont("Helvetica", 6)
+    pdf.drawCentredString(150, 120, "(AUTONOMOUS)")
+    pdf.drawCentredString(150, 100, "THRIKKAKARA, KOCHI-21")
 
-    # Seal
-    pdf.circle(120, 100, 40)
-    pdf.drawCentredString(120, 100, "SEAL")
+    # --- Right Side: Signature & Stamp ---
+    # Signature line
+    pdf.line(width - 200, 145, width - 60, 145)
+    
+    # Stamp text
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(width - 170, 120, "Principal")
+    
+    pdf.setFont("Helvetica", 8)
+    pdf.drawString(width - 200, 105, "PRINCIPAL IN-CHARGE")
+    
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawString(width - 190, 90, "BHARATA MATA COLLEGE")
+    
+    pdf.setFont("Helvetica", 8)
+    pdf.drawString(width - 190, 78, "(AUTONOMOUS)")
+    pdf.drawString(width - 190, 66, "THRIKKAKARA")
 
     pdf.showPage()
     pdf.save()
@@ -641,7 +640,6 @@ def mark_ready(request, request_id):
         )
 
     return redirect('staff_dashboard')
-
 # =========================================================
 # RESEND CERTIFICATE EMAIL
 # =========================================================
