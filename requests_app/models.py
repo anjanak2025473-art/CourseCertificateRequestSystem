@@ -2,24 +2,27 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
 
- 
-class User(AbstractUser):
-    email = models.EmailField(unique=False)
-    
-    YEAR_CHOICES = [
-    ('I Year UG', 'I Year UG'),
-    ('II Year UG', 'II Year UG'),
-    ('III Year UG', 'III Year UG'),
-    ('IV Year UG', 'IV Year UG'),
+
+YEAR_CHOICES = [
+    ('I Year', 'I Year'),
+    ('II Year', 'II Year'),
+    ('III Year', 'III Year'),
+    ('IV Year', 'IV Year'),
     ('I Year PG', 'I Year PG'),
     ('II Year PG', 'II Year PG'),
 ]
+
+
+class User(AbstractUser):
+    email = models.EmailField(unique=False)
+
     ROLE_CHOICES = (
         ('student', 'Student'),
         ('hod', 'HOD'),
         ('principal', 'Principal'),
         ('staff', 'Office Staff'),
     )
+
     DEPARTMENT_CHOICES = (
         ('CS', 'Computer Science'),
         ('ECO', 'Economics'),
@@ -39,7 +42,7 @@ class User(AbstractUser):
     )
 
     department = models.CharField(
-        max_length=20,   # ← correct,
+        max_length=20,
         choices=DEPARTMENT_CHOICES,
         blank=True,
         null=True
@@ -67,49 +70,12 @@ class CertificateRequest(models.Model):
     )
 
     certificate_type = models.CharField(max_length=100)
-
-    purpose = models.TextField()
-
-    status = models.CharField(
-        max_length=30,
-        choices=STATUS_CHOICES,
-        default='Pending'
-    )
-
-    hod_remarks = models.TextField(
-        blank=True,
-        null=True
-    )
-
-    principal_remarks = models.TextField(
-        blank=True,
-        null=True
-    )
-
-    staff_remarks = models.TextField(
-        blank=True,
-        null=True
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
-
-   
-
-class CertificateRequest(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    certificate_type = models.CharField(max_length=100)
     purpose = models.TextField(blank=True)
-    year_of_study = models.CharField(max_length=20, choices=YEAR_CHOICES, default='III Year UG')
-    status = models.CharField(max_length=30, default="Pending")
-    hod_remarks = models.TextField(blank=True)
-    principal_remarks = models.TextField(blank=True)
-    staff_remarks = models.TextField(blank=True)
+    year_of_study = models.CharField(max_length=20, choices=YEAR_CHOICES, default='III Year')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending')
+    hod_remarks = models.TextField(blank=True, null=True)
+    principal_remarks = models.TextField(blank=True, null=True)
+    staff_remarks = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
