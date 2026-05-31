@@ -372,7 +372,7 @@ def generate_certificate(certificate):
     pdf.setFont("Times-Bold", 18)
     pdf.drawCentredString(width / 2, height - 100, "THRIKKAKARA")
 
-        # Date
+    # Date
     today = date.today().strftime("%d/%m/%Y")
     pdf.setFont("Times-Roman", 12)
     pdf.drawRightString(width - 60, height - 100, f"Date: {today}")
@@ -400,7 +400,7 @@ def generate_certificate(certificate):
     pdf.setFont("Times-Roman", 14)
     y = height - 200
     line_h = 24
-    m = 85  # left margin
+    m = 85
 
     # Line 1
     pdf.drawString(m, y, "This is to certify that")
@@ -430,18 +430,14 @@ def generate_certificate(certificate):
     # =========================
     px = width - 200
 
-    # Signature line
     pdf.line(px - 50, 140, px + 130, 140)
 
-    # Principal name
     pdf.setFont("Times-Italic", 16)
     pdf.drawCentredString(px + 40, 155, "Soumya Thomas")
 
-    # Title
     pdf.setFont("Times-Bold", 14)
     pdf.drawString(px + 5, 115, "Principal")
 
-    # Details
     pdf.setFont("Times-Roman", 9)
     pdf.drawString(px - 30, 98, "PRINCIPAL IN-CHARGE")
     pdf.setFont("Times-Bold", 9)
