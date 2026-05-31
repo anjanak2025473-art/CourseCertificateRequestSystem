@@ -2,10 +2,18 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
 
-
+ 
 class User(AbstractUser):
     email = models.EmailField(unique=False)
-
+    
+    YEAR_CHOICES = [
+    ('I Year UG', 'I Year UG'),
+    ('II Year UG', 'II Year UG'),
+    ('III Year UG', 'III Year UG'),
+    ('IV Year UG', 'IV Year UG'),
+    ('I Year PG', 'I Year PG'),
+    ('II Year PG', 'II Year PG'),
+]
     ROLE_CHOICES = (
         ('student', 'Student'),
         ('hod', 'HOD'),
@@ -91,14 +99,7 @@ class CertificateRequest(models.Model):
         auto_now=True
     )
 
-    YEAR_CHOICES = [
-    ('I Year UG', 'I Year UG'),
-    ('II Year UG', 'II Year UG'),
-    ('III Year UG', 'III Year UG'),
-    ('IV Year UG', 'IV Year UG'),
-    ('I Year PG', 'I Year PG'),
-    ('II Year PG', 'II Year PG'),
-]
+   
 
 class CertificateRequest(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)
