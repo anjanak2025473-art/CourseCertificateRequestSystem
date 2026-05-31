@@ -426,35 +426,6 @@ def generate_certificate(certificate):
     pdf.drawString(m, y, "and that his/her character and conduct have been Good.")
 
     # =========================
-    # SEAL (Bottom Left)
-    # =========================
-    sx, sy = 160, 120
-
-    # Outer border
-    pdf.setFillColorRGB(0.8, 0.1, 0.1)
-    pdf.circle(sx, sy, 55, fill=0, stroke=1)
-    # Inner border
-    pdf.circle(sx, sy, 48, fill=0, stroke=1)
-
-    # Dotted ring effect
-    pdf.setDash(2, 2)
-    pdf.circle(sx, sy, 52, fill=0, stroke=1)
-    pdf.setDash()  # reset
-
-    # Text inside seal
-    pdf.setFillColorRGB(0.8, 0.1, 0.1)
-    pdf.setFont("Times-Bold", 7)
-    pdf.drawCentredString(sx, sy + 25, "BHARATA MATA COLLEGE")
-    pdf.setFont("Times-Bold", 11)
-    pdf.drawCentredString(sx, sy + 10, "B.M.C.")
-    pdf.setFont("Times-Roman", 6)
-    pdf.drawCentredString(sx, sy - 3, "(AUTONOMOUS)")
-    pdf.setFont("Times-Bold", 7)
-    pdf.drawCentredString(sx, sy - 18, "THRIKKAKARA")
-
-    pdf.setFillColorRGB(0, 0, 0)  # reset to black
-
-    # =========================
     # PRINCIPAL SIGNATURE (Bottom Right)
     # =========================
     px = width - 200
