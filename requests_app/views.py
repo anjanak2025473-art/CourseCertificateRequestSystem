@@ -353,7 +353,6 @@ def staff_dashboard(request):
         'completed_requests': completed_requests,
     })
 
-
 # =========================================================
 # PDF CERTIFICATE GENERATION
 # =========================================================
@@ -361,228 +360,114 @@ def staff_dashboard(request):
 def generate_certificate(certificate):
 
     buffer = BytesIO()
-
     width, height = A4
-
     pdf = canvas.Canvas(buffer, pagesize=A4)
 
     # =========================
     # HEADER
     # =========================
-
-    pdf.setFont("Times-Bold", 22)
-    pdf.drawCentredString(
-        width / 2,
-        height - 80,
-        "BHARATA MATA COLLEGE (AUTONOMOUS),"
-    )
-
     pdf.setFont("Times-Bold", 20)
-    pdf.drawCentredString(
-        width / 2,
-        height - 120,
-        "THRIKKAKARA"
-    )
+    pdf.drawCentredString(width / 2, height - 70, "BHARATA MATA COLLEGE (AUTONOMOUS),")
 
-    # Date
+    pdf.setFont("Times-Bold", 18)
+    pdf.drawCentredString(width / 2, height - 100, "THRIKKAKARA")
+
+    # Date on right
     today = date.today().strftime("%d/%m/%Y")
-
-    pdf.setFont("Times-Roman", 14)
-    pdf.drawRightString(
-        width - 70,
-        height - 150,
-        f"Date: {today}"
-    )
+    pdf.setFont("Times-Roman", 12)
+    pdf.drawRightString(width - 60, height - 70, f"Date: {today}")
 
     # =========================
     # TITLE
     # =========================
-
-    pdf.setFont("Times-Bold", 24)
-
-    pdf.drawCentredString(
-        width / 2,
-        height - 210,
-        "CERTIFICATE"
-    )
-
-    pdf.line(
-        width / 2 - 90,
-        height - 215,
-        width / 2 + 90,
-        height - 215
-    )
+    pdf.setFont("Times-Bold", 22)
+    pdf.drawCentredString(width / 2, height - 155, "CERTIFICATE")
+    pdf.line(width / 2 - 70, height - 160, width / 2 + 70, height - 160)
 
     # =========================
     # BODY
     # =========================
-
     student_name = (
         certificate.student.get_full_name()
         or certificate.student.username
     )
-
+    department = certificate.student.get_department_display() or "Computer Science"
     year = certificate.created_at.year
+    next_year_short = str(year + 1)[-2:]
+    year_of_study = certificate.get_year_of_study_display() or "III Year UG"
 
-    x = 90
-    y = height - 300
+    # Draw paragraph as flowing text
+    line_y = height - 200
+    line_height = 24
+    left_margin = 85
 
-    pdf.setFont("Times-Italic", 17)
+    # Line 1
+    pdf.setFont("Times-Roman", 14)
+    pdf.drawString(left_margin, line_y, "This is to certify that")
+    name_width = pdf.stringWidth("This is to certify that ", "Times-Roman", 14)
+    pdf.setFont("Times-Bold", 14)
+    pdf.drawString(left_margin + name_width, line_y, student_name)
 
-    pdf.drawString(
-        x,
-        y,
-        "This is to certify that"
-    )
+    # Line 2
+    line_y -= line_height
+    pdf.setFont("Times-Roman", 14)
+    pdf.drawString(left_margin, line_y, "is a student of this college for the")
+    text_width = pdf.stringWidth("is a student of this college for the ", "Times-Roman", 14)
+    pdf.setFont("Times-Bold", 14)
+    pdf.drawString(left_margin + text_width, line_y, year_of_study)
 
-    # Student Name
-    pdf.setFont("Times-Bold", 18)
+    # Line 3
+    line_y -= line_height
+    pdf.setFont("Times-Roman", 14)
+    pdf.drawString(left_margin, line_y, f"{department} (Aided) B.A./B.Sc./B.Com./BBA/B.S.W./M.A./M.Sc./")
 
-    pdf.drawString(
-        330,
-        y,
-        student_name
-    )
+    # Line 4
+    line_y -= line_height
+    pdf.drawString(left_margin, line_y, "M.S.W./M.Com degree course during the academic year(s)")
 
-    # Dotted line
-    pdf.line(250, y - 3, 520, y - 3)
-
-    # =========================
-
-    y -= 60
-
-    pdf.setFont("Times-Italic", 17)
-
-    pdf.drawString(
-        x,
-        y,
-        "is a student of this college for the"
-    )
-
-    pdf.setFont("Times-Bold", 17)
-
-    course_text = "IIIrd year Computer Science (Aided)"
-
-    pdf.drawString(
-        350,
-        y,
-        course_text
-    )
-
-    pdf.line(330, y - 3, 700, y - 3)
+    # Line 5
+    line_y -= line_height
+    pdf.drawString(left_margin, line_y, f"{year}-{next_year_short} and that his/her character and conduct have been Good.")
 
     # =========================
+    # SEAL (Bottom Left)
+    # =========================
+    seal_x = 160
+    seal_y = 130
 
-    y -= 70
+    pdf.circle(seal_x, seal_y, 50)
+    pdf.circle(seal_x, seal_y, 40)
 
-    pdf.setFont("Times-Italic", 17)
-
-    text = (
-        f"degree course during the academic year(s) "
-        f"{year}-{str(year + 1)[-2:]}"
-    )
-
-    pdf.drawString(
-        x,
-        y,
-        text
-    )
-
-    pdf.line(90, y - 3, 470, y - 3)
+    pdf.setFont("Times-Bold", 7)
+    pdf.drawCentredString(seal_x, seal_y + 22, "BHARATA MATA COLLEGE")
+    pdf.setFont("Times-Bold", 10)
+    pdf.drawCentredString(seal_x, seal_y + 8, "B.M.C.")
+    pdf.setFont("Times-Roman", 6)
+    pdf.drawCentredString(seal_x, seal_y - 5, "(AUTONOMOUS)")
+    pdf.drawCentredString(seal_x, seal_y - 18, "THRIKKAKARA")
 
     # =========================
-
-    y -= 70
-
-    pdf.drawString(
-        x,
-        y,
-        "and that his/her character and conduct have been Good."
-    )
-
+    # PRINCIPAL SIGNATURE (Bottom Right)
     # =========================
-    # SEAL
-    # =========================
+    sig_x = width - 200
 
-    seal_x = 170
-    seal_y = 140
+    pdf.line(sig_x - 40, 140, sig_x + 120, 140)
 
-    pdf.circle(seal_x, seal_y, 55)
-    pdf.circle(seal_x, seal_y, 45)
+    pdf.setFont("Times-Bold", 14)
+    pdf.drawString(sig_x, 115, "Principal")
 
-    pdf.setFont("Times-Bold", 8)
-
-    pdf.drawCentredString(
-        seal_x,
-        seal_y + 20,
-        "BHARATA MATA COLLEGE"
-    )
-
-    pdf.drawCentredString(
-        seal_x,
-        seal_y,
-        "(AUTONOMOUS)"
-    )
-
-    pdf.drawCentredString(
-        seal_x,
-        seal_y - 20,
-        "THRIKKAKARA"
-    )
-
-    # =========================
-    # PRINCIPAL SIGNATURE
-    # =========================
-
-    pdf.setFont("Helvetica-Oblique", 26)
-
-    pdf.drawString(
-        width - 240,
-        150,
-        "Ancy"
-    )
-
-    pdf.line(width - 260, 135, width - 80, 135)
-
-    pdf.setFont("Times-Bold", 16)
-
-    pdf.drawString(
-        width - 200,
-        105,
-        "Principal"
-    )
-
-    pdf.setFont("Times-Roman", 11)
-
-    pdf.drawString(
-        width - 260,
-        88,
-        "PRINCIPAL IN-CHARGE"
-    )
-
-    pdf.drawString(
-        width - 250,
-        72,
-        "BHARATA MATA COLLEGE"
-    )
-
-    pdf.drawString(
-        width - 220,
-        56,
-        "(AUTONOMOUS)"
-    )
-
-    pdf.drawString(
-        width - 220,
-        42,
-        "THRIKKAKARA"
-    )
+    pdf.setFont("Times-Roman", 9)
+    pdf.drawString(sig_x - 30, 98, "PRINCIPAL IN-CHARGE")
+    pdf.setFont("Times-Bold", 9)
+    pdf.drawString(sig_x - 20, 83, "BHARATA MATA COLLEGE")
+    pdf.setFont("Times-Roman", 9)
+    pdf.drawString(sig_x - 20, 68, "(AUTONOMOUS)")
+    pdf.drawString(sig_x - 20, 53, "THRIKKAKARA")
 
     pdf.showPage()
     pdf.save()
 
     buffer.seek(0)
-
     return buffer
 
 # =========================================================

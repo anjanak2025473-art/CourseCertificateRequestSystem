@@ -23,7 +23,7 @@ class RegisterForm(UserCreationForm):
 class CertificateRequestForm(forms.ModelForm):
     class Meta:
         model = CertificateRequest
-        fields = ['certificate_type', 'purpose']
+        fields = ['certificate_type', 'purpose', 'year_of_study']
 
 
 # ----------------------------

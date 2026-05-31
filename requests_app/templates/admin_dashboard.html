@@ -44,7 +44,7 @@
     <div class="card shadow-lg mb-4">
         <div class="card-body p-4">
             <h5 class="text-success mb-3">
-                Pending for Processing 
+                Pending for Processing
                 <span class="badge bg-warning text-dark">{{ requests|length }}</span>
             </h5>
             <div class="table-responsive">
@@ -52,6 +52,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Student</th>
+                            <th>Year</th>
                             <th>Email</th>
                             <th>Certificate Type</th>
                             <th>Action</th>
@@ -61,6 +62,7 @@
                     {% for req in requests %}
                         <tr>
                             <td>{{ req.student.username }}</td>
+                            <td>{{ req.get_year_of_study_display }}</td>
                             <td>
                                 {% if req.student.email %}
                                     {{ req.student.email }}
@@ -81,7 +83,7 @@
                             </td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="4" class="text-center text-muted py-4">No pending requests</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">No pending requests</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
@@ -89,11 +91,11 @@
         </div>
     </div>
 
-    <!-- Completed Requests (RESEND SECTION) -->
+    <!-- Completed Requests -->
     <div class="card shadow-lg mb-4">
         <div class="card-body p-4">
             <h5 class="text-primary mb-3">
-                Completed 
+                Completed
                 <span class="badge bg-success">{{ completed_requests|length }}</span>
             </h5>
             <div class="table-responsive">
@@ -101,6 +103,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Student</th>
+                            <th>Year</th>
                             <th>Email</th>
                             <th>Certificate Type</th>
                             <th>Action</th>
@@ -110,6 +113,7 @@
                     {% for req in completed_requests %}
                         <tr>
                             <td>{{ req.student.username }}</td>
+                            <td>{{ req.get_year_of_study_display }}</td>
                             <td>{{ req.student.email }}</td>
                             <td>{{ req.certificate_type }}</td>
                             <td>
@@ -124,7 +128,7 @@
                             </td>
                         </tr>
                     {% empty %}
-                        <tr><td colspan="4" class="text-center text-muted py-4">No completed requests yet</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">No completed requests yet</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
